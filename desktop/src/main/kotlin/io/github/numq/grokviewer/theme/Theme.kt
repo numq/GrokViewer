@@ -6,39 +6,47 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-private val GrokBlack = Color(0xFF000000)
+private val DarkGrey = Color(0xFF1A1A1A)
 
-private val GrokDarkGrey = Color(0xFF121212)
+private val SurfaceGrey = Color(0xFF242424)
 
-private val GrokWhite = Color(0xFFFFFFFF)
+private val BorderGrey = Color(0xFF383838)
 
-private val GrokAccent = Color(0xFFE5E5E5)
+private val TextPrimary = Color(0xFFE2E2E2)
 
-private val GrokHighlight = Color(0xFFFF5C00)
+private val TextSecondary = Color(0xFFA0A0A0)
+
+private val GrokOrange = Color(0xFFFF5C00)
 
 private val LightColors = lightColorScheme(
-    primary = GrokBlack,
-    onPrimary = GrokWhite,
-    secondary = GrokDarkGrey,
-    onSecondary = GrokWhite,
-    background = GrokWhite,
-    onBackground = GrokBlack,
-    surface = Color(0xFFF5F5F5),
-    onSurface = GrokBlack,
-    outline = Color(0xFF8E8E8E)
+    primary = Color.Black,
+    onPrimary = Color.White,
+    primaryContainer = Color(0xFFE5E5E5),
+    onPrimaryContainer = Color.Black,
+    background = Color(0xFFF9F9F9),
+    onBackground = Color(0xFF1A1A1A),
+    surface = Color.White,
+    onSurface = Color(0xFF1A1A1A),
+    surfaceVariant = Color(0xFFF0F0F0),
+    onSurfaceVariant = Color(0xFF444444),
+    outline = Color(0xFFD1D1D1)
 )
 
 private val DarkColors = darkColorScheme(
-    primary = GrokWhite,
-    onPrimary = GrokBlack,
-    secondary = GrokAccent,
-    onSecondary = GrokBlack,
-    background = GrokBlack,
-    onBackground = GrokWhite,
-    surface = GrokDarkGrey,
-    onSurface = GrokWhite,
-    outline = Color(0xFF333333),
-    tertiary = GrokHighlight
+    primary = Color.White,
+    onPrimary = Color.Black,
+    primaryContainer = Color(0xFF333333),
+    onPrimaryContainer = Color.White,
+    secondary = GrokOrange,
+    onSecondary = Color.Black,
+    background = DarkGrey,
+    onBackground = TextPrimary,
+    surface = DarkGrey,
+    onSurface = TextPrimary,
+    surfaceVariant = SurfaceGrey,
+    onSurfaceVariant = TextSecondary,
+    outline = BorderGrey,
+    error = Color(0xFFCF6679)
 )
 
 @Composable
