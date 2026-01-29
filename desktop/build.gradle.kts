@@ -26,7 +26,7 @@ compose.desktop {
         nativeDistributions {
             modules("java.instrument", "java.sql", "jdk.unsupported")
             targetFormats(TargetFormat.Dmg, TargetFormat.Exe, TargetFormat.Deb)
-            packageName = "Grok Viewer"
+            packageName = "GrokViewer"
             packageVersion = "1.0.0"
             windows {
                 iconFile.set(project.file("src/main/resources/drawable/icon.png"))
