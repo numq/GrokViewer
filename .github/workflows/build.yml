@@ -17,11 +17,17 @@ jobs:
       - name: Build
         run: ./gradlew :desktop:createDistributable
 
+      - name: Package Windows
+        shell: bash
+        run: |
+          cd desktop/build/compose/binaries/main/app
+          7z a -tzip ../GrokViewer-win-x64.zip GrokViewer/
+
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: grok-viewer-win-x64
-          path: desktop/build/compose/binaries/main/app/GrokViewer
+          name: GrokViewer-win-x64
+          path: desktop/build/compose/binaries/main/GrokViewer-win-x64.zip
 
   build-mac:
     runs-on: macos-latest
@@ -39,11 +45,16 @@ jobs:
       - name: Build
         run: ./gradlew :desktop:createDistributable
 
+      - name: Package Mac
+        run: |
+          cd desktop/build/compose/binaries/main/app
+          zip -r ../GrokViewer-mac-x64.zip *.app
+
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: grok-viewer-mac-x64
-          path: desktop/build/compose/binaries/main/app/*.app
+          name: GrokViewer-mac-x64
+          path: desktop/build/compose/binaries/main/GrokViewer-mac-x64.zip
 
   build-linux:
     runs-on: ubuntu-latest
@@ -61,8 +72,13 @@ jobs:
       - name: Build
         run: ./gradlew :desktop:createDistributable
 
+      - name: Package Linux
+        run: |
+          cd desktop/build/compose/binaries/main/app
+          tar -czvf ../GrokViewer-linux-x64.tar.gz GrokViewer/
+
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: grok-viewer-linux-x64
-          path: desktop/build/compose/binaries/main/app/GrokViewer
+          name: GrokViewer-linux-x64
+          path: desktop/build/compose/binaries/main/GrokViewer-linux-x64.tar.gz
