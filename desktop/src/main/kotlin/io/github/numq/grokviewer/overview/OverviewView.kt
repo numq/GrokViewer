@@ -235,7 +235,7 @@ fun OverviewView(feature: OverviewFeature = koinInject()) {
     }, floatingActionButtonPosition = FabPosition.Center, content = { paddingValues ->
         Box(
             modifier = Modifier.fillMaxSize().background(
-                if (state.isHovered) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.background
+                if (state.isHovered) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.background
             ).dragAndDropTarget(
                 shouldStartDragAndDrop = { event ->
                     state is OverviewState.Default && event.dragData() is DragData.FilesList

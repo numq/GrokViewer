@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.application
@@ -27,7 +28,10 @@ fun main() {
     application {
         Theme(darkTheme = isSystemInDarkTheme()) {
             WindowDecoration(
-                title = APP_NAME, minimumWindowSize = DpSize(512.dp, 512.dp), windowContent = {
+                title = APP_NAME,
+                icon = painterResource("drawable/icon.png"),
+                minimumWindowSize = DpSize(512.dp, 512.dp),
+                windowContent = {
                     Column(
                         modifier = Modifier.fillMaxSize(),
                         horizontalAlignment = Alignment.CenterHorizontally,

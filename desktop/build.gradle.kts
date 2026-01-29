@@ -24,9 +24,19 @@ compose.desktop {
         mainClass = "io.github.numq.grokviewer.application.ApplicationKt"
 
         nativeDistributions {
+            modules("java.instrument", "java.sql", "jdk.unsupported")
             targetFormats(TargetFormat.Dmg, TargetFormat.Exe, TargetFormat.Deb)
-            packageName = "io.github.numq"
+            packageName = "Grok Viewer"
             packageVersion = "1.0.0"
+            windows {
+                iconFile.set(project.file("src/main/resources/drawable/icon.png"))
+            }
+            macOS {
+                iconFile.set(project.file("src/main/resources/drawable/icon.png"))
+            }
+            linux {
+                iconFile.set(project.file("src/main/resources/drawable/icon.png"))
+            }
         }
     }
 }
