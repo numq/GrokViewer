@@ -17,13 +17,7 @@ jobs:
       - name: Build Portable Windows
         run: ./gradlew :desktop:createDistributable
 
-      - name: Zip Windows Artifact
-        shell: bash
-        run: |
-          cd desktop/build/compose/binaries/main/
-          7z a -tzip grok-viewer-win-x64.zip app/*
-
-      - name: Prepare Windows Portable Folder
+      - name: Package Windows
         shell: bash
         run: |
           cd desktop/build/compose/binaries/main/
@@ -53,12 +47,7 @@ jobs:
       - name: Build Portable Mac
         run: ./gradlew :desktop:createDistributable
 
-      - name: Zip Mac Artifact
-        run: |
-          cd desktop/build/compose/binaries/main/app
-          zip -r ../grok-viewer-mac-x64.zip *.app
-
-      - name: Prepare Mac Artifact
+      - name: Package Mac
         run: |
           cd desktop/build/compose/binaries/main/app
           zip -r ../grok-viewer-mac-x64.zip *.app
@@ -85,12 +74,7 @@ jobs:
       - name: Build Portable Linux
         run: ./gradlew :desktop:createDistributable
 
-      - name: Archive Linux Artifact
-        run: |
-          cd desktop/build/compose/binaries/main/
-          tar -czvf grok-viewer-linux-x64.tar.gz app/
-
-      - name: Prepare Linux Portable Folder
+      - name: Package Linux
         run: |
           cd desktop/build/compose/binaries/main/
           mkdir grok-viewer
