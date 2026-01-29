@@ -17,12 +17,6 @@ jobs:
       - name: Build
         run: ./gradlew :desktop:createDistributable
 
-      - name: Package Windows
-        shell: bash
-        run: |
-          cd desktop/build/compose/binaries/main/app
-          7z a -tzip ../GrokViewer-win-x64.zip GrokViewer/
-
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
@@ -46,11 +40,6 @@ jobs:
       - name: Build
         run: ./gradlew :desktop:createDistributable
 
-      - name: Package Mac
-        run: |
-          cd desktop/build/compose/binaries/main/app
-          zip -r ../GrokViewer-mac-x64.zip *.app
-
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
@@ -73,13 +62,9 @@ jobs:
       - name: Build
         run: ./gradlew :desktop:createDistributable
 
-      - name: Package Linux
-        run: |
-          cd desktop/build/compose/binaries/main/app
-          tar -czvf ../GrokViewer-linux-x64.tar.gz GrokViewer/
-
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
           name: GrokViewer-linux-x64
           path: desktop/build/compose/binaries/main/GrokViewer-linux-x64.tar.gz
+          include-hidden-files: true
