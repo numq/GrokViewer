@@ -10,12 +10,8 @@
 
 </div>
 
-<br>
-
 <p align="center">An application for viewing, filtering, and exporting binary data from Grok AI (xAI) archives into human-readable
 formats</p>
-
-<br>
 
 <p align="center"><img src="./media/preview.png" alt="preview"></p>
 
