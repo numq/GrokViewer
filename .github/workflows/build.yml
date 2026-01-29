@@ -21,7 +21,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: grok-viewer-win-x64
-          path: desktop/build/compose/binaries/main/app/GrokViewer/*
+          path: desktop/build/compose/binaries/main/app/GrokViewer
 
   build-mac:
     runs-on: macos-latest
@@ -65,4 +65,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: grok-viewer-linux-x64
-          path: desktop/build/compose/binaries/main/app/GrokViewer/*
+          path: desktop/build/compose/binaries/main/app/GrokViewer
