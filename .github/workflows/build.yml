@@ -16,16 +16,12 @@ jobs:
       - name: Build
         run: ./gradlew :desktop:createDistributable
 
-      - name: Prepare Files
-        run: |
-          cd desktop/build/compose/binaries/main/app
-          Rename-Item -Path "GrokViewer" -NewName "GrokViewer-win-x64"
-
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
           name: GrokViewer-win-x64
-          path: desktop/build/compose/binaries/main/app/GrokViewer-win-x64
+          path: desktop/build/compose/binaries/main/app/GrokViewer
+          include-hidden-files: true
 
   build-mac:
     runs-on: macos-latest
@@ -39,17 +35,17 @@ jobs:
       - name: Build
         run: ./gradlew :desktop:createDistributable
 
-      - name: Prepare Files
-        run: |
-          cd desktop/build/compose/binaries/main/app
-          mkdir GrokViewer-mac-x64
-          mv GrokViewer.app GrokViewer-mac-x64/
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build
+        run: ./gradlew :desktop:createDistributable
 
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
           name: GrokViewer-mac-x64
-          path: desktop/build/compose/binaries/main/app/GrokViewer-mac-x64
+          path: desktop/build/compose/binaries/main/app/GrokViewer.app
 
   build-linux:
     runs-on: ubuntu-latest
@@ -60,16 +56,14 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
       - name: Build
         run: ./gradlew :desktop:createDistributable
-
-      - name: Prepare Files
-        run: |
-          cd desktop/build/compose/binaries/main/app
-          mv GrokViewer GrokViewer-linux-x64
 
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
           name: GrokViewer-linux-x64
-          path: desktop/build/compose/binaries/main/app/GrokViewer-linux-x64
+          path: desktop/build/compose/binaries/main/app/GrokViewer
