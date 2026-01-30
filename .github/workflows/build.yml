@@ -16,23 +16,17 @@ jobs:
       - name: Build
         run: ./gradlew :desktop:createDistributable
 
-      - name: Create ZIP
+      - name: Prepare directory for upload
         run: |
-          $source = "desktop/build/compose/binaries/main/app/GrokViewer"
-          $zipFile = "GrokViewer-win-x64.zip"
-          $tempDir = "temp_zip"
-          
-          New-Item -ItemType Directory -Path "$tempDir/GrokViewer" -Force
-          Copy-Item -Path "$source/*" -Destination "$tempDir/GrokViewer/" -Recurse -Force
-          Compress-Archive -Path "$tempDir/*" -DestinationPath $zipFile
-          Remove-Item -Path $tempDir -Recurse -Force
+          New-Item -ItemType Directory -Path "GrokViewer-win-x64" -Force
+          Copy-Item -Path "desktop/build/compose/binaries/main/app/GrokViewer/*" -Destination "GrokViewer-win-x64/" -Recurse -Force
 
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
           name: GrokViewer-win-x64
-          path: GrokViewer-win-x64.zip
-          compression-level: 0
+          path: GrokViewer-win-x64
+          include-hidden-files: true
 
   build-mac:
     runs-on: macos-latest
@@ -49,19 +43,17 @@ jobs:
       - name: Build
         run: ./gradlew :desktop:createDistributable
 
-      - name: Create ZIP
+      - name: Prepare for upload
         run: |
-          WORKSPACE="$PWD"
-          
-          cd desktop/build/compose/binaries/main/app
-          zip -r "$WORKSPACE/GrokViewer-mac-x64.zip" GrokViewer.app
+          mkdir -p "GrokViewer-mac-x64"
+          cp -R desktop/build/compose/binaries/main/app/GrokViewer.app "GrokViewer-mac-x64/"
 
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
           name: GrokViewer-mac-x64
-          path: GrokViewer-mac-x64.zip
-          compression-level: 0
+          path: GrokViewer-mac-x64
+          include-hidden-files: true
 
   build-linux:
     runs-on: ubuntu-latest
@@ -78,20 +70,14 @@ jobs:
       - name: Build
         run: ./gradlew :desktop:createDistributable
 
-      - name: Create ZIP
+      - name: Prepare directory for upload
         run: |
-          TEMP_DIR="temp_zip"
-          
-          mkdir -p "$TEMP_DIR/GrokViewer"
-          cp -R desktop/build/compose/binaries/main/app/GrokViewer/* "$TEMP_DIR/GrokViewer/"
-          cd "$TEMP_DIR"
-          zip -r ../GrokViewer-linux-x64.zip *
-          cd ..
-          rm -rf "$TEMP_DIR"
+          mkdir -p "GrokViewer-linux-x64"
+          cp -R desktop/build/compose/binaries/main/app/GrokViewer/* "GrokViewer-linux-x64/"
 
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
           name: GrokViewer-linux-x64
-          path: GrokViewer-linux-x64.zip
-          compression-level: 0
+          path: GrokViewer-linux-x64
+          include-hidden-files: true
