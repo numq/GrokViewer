@@ -16,18 +16,15 @@ jobs:
       - name: Build
         run: ./gradlew :desktop:createDistributable
 
-      - name: Create ZIP with GrokViewer folder (Windows)
+      - name: Create ZIP
         run: |
           $source = "desktop/build/compose/binaries/main/app/GrokViewer"
           $zipFile = "GrokViewer-win-x64.zip"
           $tempDir = "temp_zip"
           
           New-Item -ItemType Directory -Path "$tempDir/GrokViewer" -Force
-          
           Copy-Item -Path "$source/*" -Destination "$tempDir/GrokViewer/" -Recurse -Force
-          
           Compress-Archive -Path "$tempDir/*" -DestinationPath $zipFile
-          
           Remove-Item -Path $tempDir -Recurse -Force
 
       - name: Upload
@@ -51,18 +48,10 @@ jobs:
       - name: Build
         run: ./gradlew :desktop:createDistributable
 
-      - name: Create ZIP with GrokViewer folder (Mac)
+      - name: Create ZIP
         run: |
-          TEMP_DIR="temp_zip"
-          mkdir -p "$TEMP_DIR/GrokViewer"
-          
-          cp -R desktop/build/compose/binaries/main/app/GrokViewer.app "$TEMP_DIR/GrokViewer/"
-          
-          cd "$TEMP_DIR"
-          zip -r ../GrokViewer-mac-x64.zip *
-          cd ..
-
-          rm -rf "$TEMP_DIR"
+          cd desktop/build/compose/binaries/main/app
+          zip -r ../../../../../GrokViewer-mac-x64.zip GrokViewer.app
 
       - name: Upload
         uses: actions/upload-artifact@v4
@@ -85,17 +74,14 @@ jobs:
       - name: Build
         run: ./gradlew :desktop:createDistributable
 
-      - name: Create ZIP with GrokViewer folder (Linux)
+      - name: Create ZIP
         run: |
           TEMP_DIR="temp_zip"
           mkdir -p "$TEMP_DIR/GrokViewer"
-          
           cp -R desktop/build/compose/binaries/main/app/GrokViewer/* "$TEMP_DIR/GrokViewer/"
-          
           cd "$TEMP_DIR"
           zip -r ../GrokViewer-linux-x64.zip *
           cd ..
-
           rm -rf "$TEMP_DIR"
 
       - name: Upload
