@@ -16,23 +16,12 @@ jobs:
       - name: Build
         run: ./gradlew :desktop:createDistributable
 
-      - name: Create final ZIP
-        run: |
-          $source = "desktop/build/compose/binaries/main/app/GrokViewer"
-          Compress-Archive -Path $source -DestinationPath "GrokViewer-win-x64-final.zip"
-          
-          Move-Item -Path "GrokViewer-win-x64-final.zip" -Destination "GrokViewer-win-x64.bin"
-          
-          Write-Host "=== Checking original ZIP ==="
-          Expand-Archive -Path "GrokViewer-win-x64.bin" -DestinationPath "check_zip" -Force
-          Get-ChildItem -Path "check_zip" | Format-Table Name
-          Remove-Item -Path "check_zip" -Recurse -Force
-
-      - name: Upload as binary file
+      - name: Upload
         uses: actions/upload-artifact@v4
         with:
           name: GrokViewer-win-x64
-          path: GrokViewer-win-x64.bin
+          path: desktop/build/compose/binaries/main/app/GrokViewer
+          include-hidden-files: true
 
   build-mac:
     runs-on: macos-latest
@@ -49,20 +38,11 @@ jobs:
       - name: Build
         run: ./gradlew :desktop:createDistributable
 
-      - name: Create final ZIP
-        run: |
-          ditto -c -k "desktop/build/compose/binaries/main/app/GrokViewer.app" "GrokViewer-mac-x64-final.zip"
-          
-          mv "GrokViewer-mac-x64-final.zip" "GrokViewer-mac-x64.bin"
-          
-          echo "=== Checking original ZIP ==="
-          unzip -l "GrokViewer-mac-x64.bin" | head -5
-
-      - name: Upload as binary file
+      - name: Upload
         uses: actions/upload-artifact@v4
         with:
           name: GrokViewer-mac-x64
-          path: GrokViewer-mac-x64.bin
+          path: desktop/build/compose/binaries/main/app/GrokViewer.app
 
   build-linux:
     runs-on: ubuntu-latest
@@ -79,23 +59,8 @@ jobs:
       - name: Build
         run: ./gradlew :desktop:createDistributable
 
-      - name: Create final ZIP
-        run: |
-          WORKDIR="$PWD"
-          
-          cd desktop/build/compose/binaries/main/app
-          
-          zip -r "$WORKDIR/GrokViewer-linux-x64-final.zip" GrokViewer
-          
-          cd "$WORKDIR"
-          
-          mv "GrokViewer-linux-x64-final.zip" "GrokViewer-linux-x64.bin"
-          
-          echo "=== Checking original ZIP ==="
-          unzip -l "GrokViewer-linux-x64.bin" | head -5
-
-      - name: Upload as binary file
+      - name: Upload
         uses: actions/upload-artifact@v4
         with:
           name: GrokViewer-linux-x64
-          path: GrokViewer-linux-x64.bin
+          path: desktop/build/compose/binaries/main/app/GrokViewer
