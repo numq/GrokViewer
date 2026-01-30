@@ -16,12 +16,18 @@ jobs:
       - name: Build
         run: ./gradlew :desktop:createDistributable
 
+      - name: Create ZIP
+        shell: pwsh
+        run: |
+          $parentDir = "desktop/build/compose/binaries/main/app"
+          $zipName = "GrokViewer-win-x64.zip"
+          Compress-Archive -Path "$parentDir/GrokViewer" -DestinationPath $zipName
+
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
           name: GrokViewer-win-x64
-          path: desktop/build/compose/binaries/main/app/GrokViewer
-          include-hidden-files: true
+          path: GrokViewer-win-x64.zip
 
   build-mac:
     runs-on: macos-latest
@@ -38,11 +44,16 @@ jobs:
       - name: Build
         run: ./gradlew :desktop:createDistributable
 
+      - name: Create ZIP
+        run: |
+          cd desktop/build/compose/binaries/main/app
+          zip -r "$GITHUB_WORKSPACE/GrokViewer-mac-x64.zip" GrokViewer.app
+
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
           name: GrokViewer-mac-x64
-          path: desktop/build/compose/binaries/main/app/GrokViewer.app
+          path: GrokViewer-mac-x64.zip
 
   build-linux:
     runs-on: ubuntu-latest
@@ -59,8 +70,13 @@ jobs:
       - name: Build
         run: ./gradlew :desktop:createDistributable
 
+      - name: Create ZIP
+        run: |
+          cd desktop/build/compose/binaries/main/app
+          zip -r "$GITHUB_WORKSPACE/GrokViewer-linux-x64.zip" GrokViewer
+
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
           name: GrokViewer-linux-x64
-          path: desktop/build/compose/binaries/main/app/GrokViewer
+          path: GrokViewer-linux-x64.zip
