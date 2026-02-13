@@ -57,13 +57,18 @@ interface ContentService {
                                 val extension = entry.name.substringAfterLast(".", "").takeIf(String::isNotBlank)
                                     ?: mimeTypes[mimeType.lowercase()]
 
+                                val lastModified = entry.lastModifiedTime.toMillis().takeIf { it > 0 }
+                                val size = entry.size
+
                                 val content = when (extension) {
                                     null -> Content.Unknown(
                                         id = id,
                                         path = uniquePath,
                                         mimeType = mimeType,
                                         entryName = entry.name,
-                                        zipFilePath = path
+                                        zipFilePath = path,
+                                        lastModified = lastModified,
+                                        size = size
                                     )
 
                                     else -> Content.Resolved(
@@ -72,7 +77,9 @@ interface ContentService {
                                         mimeType = mimeType,
                                         extension = extension,
                                         entryName = entry.name,
-                                        zipFilePath = path
+                                        zipFilePath = path,
+                                        lastModified = lastModified,
+                                        size = size
                                     )
                                 }
 
@@ -80,7 +87,13 @@ interface ContentService {
                             }
                         }
                     }
-                }.sortedBy(Content::id)
+                }.sortedWith(
+                    // Sort by date (newest first). lastModified is from the ZIP entry metadata
+                    // (Grok export); it may not reflect original file creation date.
+                    compareBy<Content> { it.lastModified == null }
+                        .thenByDescending { it.lastModified ?: 0L }
+                        .thenBy(Content::id)
+                )
             }
         }
     }

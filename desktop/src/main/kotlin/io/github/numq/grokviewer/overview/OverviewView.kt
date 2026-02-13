@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalComposeUiApi::class)
+
 package io.github.numq.grokviewer.overview
 
 import androidx.compose.animation.*
@@ -10,8 +12,11 @@ import androidx.compose.foundation.draganddrop.dragAndDropTarget
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.ViewList
+import androidx.compose.material.icons.outlined.ViewModule
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,8 +34,11 @@ import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.unit.dp
 import io.github.numq.grokviewer.archive.Archive
 import io.github.numq.grokviewer.archive.ArchiveContentFilter
+import io.github.numq.grokviewer.content.Content
 import io.github.numq.grokviewer.content.ContentCard
+import io.github.numq.grokviewer.content.ContentListRow
 import io.github.numq.grokviewer.save.SaveCandidate
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -40,10 +48,108 @@ import java.awt.Frame
 import java.io.File
 import java.net.URI
 import java.nio.file.Path
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
 
 private const val HEADER_SIZE = 64f
 
 private const val CELL_SIZE = 128f
+
+private val DATE_FORMAT_INPUT = DateTimeFormatter.ISO_LOCAL_DATE
+
+private fun filterContentsByDate(
+    contents: List<Content>,
+    dateRangeStart: Long?,
+    dateRangeEnd: Long?
+): List<Content> {
+    if (dateRangeStart == null && dateRangeEnd == null) return contents
+    return contents.filter { content ->
+        val t = content.lastModified ?: return@filter false
+        (dateRangeStart == null || t >= dateRangeStart) && (dateRangeEnd == null || t <= dateRangeEnd)
+    }
+}
+
+private fun LazyGridScope.ProcessedArchiveItems(
+    archive: Archive.Processed,
+    state: OverviewState,
+    scope: CoroutineScope,
+    feature: OverviewFeature,
+    isListView: Boolean,
+    isStickyHeaderHovered: Boolean,
+    isFloatingHovered: Boolean,
+    filteredContents: List<Content>,
+    onPreviewImageRequest: (Content) -> Unit,
+) {
+    items(
+        items = filteredContents,
+        key = { content -> "${archive.path}_${content.id}" },
+        contentType = { it::class },
+        span = if (isListView) { { GridItemSpan(maxLineSpan) } } else { { GridItemSpan(1) } }
+    ) { content ->
+        val isContentSelected by remember(state, content.id) {
+            derivedStateOf {
+                (state as? OverviewState.Selection)?.contentIds?.contains(content.id)
+                    ?: false
+            }
+        }
+        val clickBlock: () -> Unit = {
+            when (state) {
+                is OverviewState.Default -> {
+                    if (content.mimeType.startsWith("image")) {
+                        onPreviewImageRequest(content)
+                    } else {
+                        scope.launch {
+                            feature.execute(OverviewCommand.SaveContent(content = content))
+                        }
+                    }
+                }
+                is OverviewState.Selection -> scope.launch {
+                    val command = when {
+                        isContentSelected -> OverviewCommand.RemoveFromSelection(
+                            contents = listOf(content)
+                        )
+                        else -> OverviewCommand.AddToSelection(
+                            contents = listOf(content)
+                        )
+                    }
+                    feature.execute(command)
+                }
+            }
+        }
+        val longClickBlock: () -> Unit = {
+            if (state is OverviewState.Default) {
+                scope.launch {
+                    feature.execute(
+                        OverviewCommand.AddToSelection(contents = listOf(content))
+                    )
+                }
+            }
+        }
+        if (isListView) {
+            ContentListRow(
+                content = content,
+                isHoverable = !isStickyHeaderHovered && !isFloatingHovered,
+                isSelectionModeActive = state is OverviewState.Selection,
+                isSelected = isContentSelected,
+                click = clickBlock,
+                longClick = longClickBlock
+            )
+        } else {
+            ContentCard(
+                content = content,
+                size = Size(CELL_SIZE, CELL_SIZE),
+                isHoverable = !isStickyHeaderHovered && !isFloatingHovered,
+                isSelectionModeActive = state is OverviewState.Selection,
+                isSelected = isContentSelected,
+                click = clickBlock,
+                longClick = longClickBlock
+            )
+        }
+    }
+}
 
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -53,6 +159,8 @@ fun OverviewView(feature: OverviewFeature = koinInject()) {
     val state by feature.state.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
+
+    var previewContent by remember { mutableStateOf<Content?>(null) }
 
     LaunchedEffect(Unit) {
         feature.events.collect { event ->
@@ -176,6 +284,120 @@ fun OverviewView(feature: OverviewFeature = koinInject()) {
                             else -> null
                         })
                     }
+                    Row(
+                        modifier = Modifier.padding(horizontal = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedTextField(
+                            value = state.dateRangeStart?.let { millis ->
+                                Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).toLocalDate().format(DATE_FORMAT_INPUT)
+                            } ?: "",
+                            onValueChange = { text ->
+                                scope.launch {
+                                    val start = text.ifBlank { null }?.let { s ->
+                                        try {
+                                            LocalDate.parse(s, DATE_FORMAT_INPUT)
+                                                .atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                                        } catch (_: DateTimeParseException) { null }
+                                    }
+                                    feature.execute(OverviewCommand.SetDateRange(start = start, end = state.dateRangeEnd))
+                                }
+                            },
+                            placeholder = { Text("From (yyyy-MM-dd)", style = MaterialTheme.typography.labelSmall) },
+                            modifier = Modifier.widthIn(min = 120.dp, max = 140.dp),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions.Default
+                        )
+                        OutlinedTextField(
+                            value = state.dateRangeEnd?.let { millis ->
+                                Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).toLocalDate().format(DATE_FORMAT_INPUT)
+                            } ?: "",
+                            onValueChange = { text ->
+                                scope.launch {
+                                    val end = text.ifBlank { null }?.let { s ->
+                                        try {
+                                            LocalDate.parse(s, DATE_FORMAT_INPUT)
+                                                .atTime(23, 59, 59, 999_999_999)
+                                                .atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                                        } catch (_: DateTimeParseException) { null }
+                                    }
+                                    feature.execute(OverviewCommand.SetDateRange(start = state.dateRangeStart, end = end))
+                                }
+                            },
+                            placeholder = { Text("To (yyyy-MM-dd)", style = MaterialTheme.typography.labelSmall) },
+                            modifier = Modifier.widthIn(min = 120.dp, max = 140.dp),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions.Default
+                        )
+                        if (state.dateRangeStart != null || state.dateRangeEnd != null) {
+                            IconButton(onClick = {
+                                scope.launch {
+                                    feature.execute(OverviewCommand.SetDateRange(start = null, end = null))
+                                }
+                            }) {
+                                Icon(Icons.Default.Clear, contentDescription = "Clear date filter")
+                            }
+                        }
+                        TooltipArea(tooltip = {
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                tonalElevation = 8.dp
+                            ) {
+                                Text(
+                                    text = "Grid view",
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    style = MaterialTheme.typography.labelMedium
+                                )
+                            }
+                        }) {
+                            IconButton(
+                                onClick = {
+                                    scope.launch {
+                                        feature.execute(OverviewCommand.SetViewMode(ViewMode.GRID))
+                                    }
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.ViewModule,
+                                    contentDescription = "Grid view",
+                                    modifier = Modifier.then(
+                                        if (state.viewMode == ViewMode.GRID) Modifier.alpha(1f) else Modifier.alpha(0.5f)
+                                    )
+                                )
+                            }
+                        }
+                        TooltipArea(tooltip = {
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                tonalElevation = 8.dp
+                            ) {
+                                Text(
+                                    text = "List view with details",
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    style = MaterialTheme.typography.labelMedium
+                                )
+                            }
+                        }) {
+                            IconButton(
+                                onClick = {
+                                    scope.launch {
+                                        feature.execute(OverviewCommand.SetViewMode(ViewMode.LIST))
+                                    }
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.ViewList,
+                                    contentDescription = "List view",
+                                    modifier = Modifier.then(
+                                        if (state.viewMode == ViewMode.LIST) Modifier.alpha(1f) else Modifier.alpha(0.5f)
+                                    )
+                                )
+                            }
+                        }
+                    }
                 }
             })
         }
@@ -256,50 +478,143 @@ fun OverviewView(feature: OverviewFeature = koinInject()) {
                         }
                     }
 
-                    else -> {
-                        val gridState = rememberLazyGridState()
+                    else -> OverviewGridContent(
+                        state = state,
+                        scope = scope,
+                        feature = feature,
+                        isFloatingHovered = isFloatingHovered,
+                        onPreviewImageRequest = { previewContent = it },
+                    )
+                }
+            }
+        }
+    })
 
-                        val headerIndices = remember(state.overviewArchives) {
-                            var currentIndex = 0
+    ImagePreviewDialog(
+        content = previewContent,
+        onDismiss = { previewContent = null },
+        onSave = { c ->
+            previewContent = null
+            scope.launch {
+                feature.execute(OverviewCommand.SaveContent(content = c))
+            }
+        }
+    )
+}
 
-                            state.overviewArchives.associate { overviewArchive ->
-                                val index = currentIndex
+@Composable
+private fun OverviewGridContent(
+    state: OverviewState,
+    scope: CoroutineScope,
+    feature: OverviewFeature,
+    isFloatingHovered: Boolean,
+    onPreviewImageRequest: (Content) -> Unit,
+) {
+    val gridState = rememberLazyGridState()
 
-                                currentIndex += 1
+    val headerIndices = remember(
+        state.overviewArchives,
+        state.dateRangeStart,
+        state.dateRangeEnd
+    ) {
+        var currentIndex = 0
 
-                                val archive = overviewArchive.archive
+        state.overviewArchives.associate { overviewArchive ->
+            val index = currentIndex
 
-                                if (overviewArchive is OverviewArchive.Expanded) {
-                                    currentIndex += when (archive) {
-                                        is Archive.Processing, is Archive.Failure -> 1
+            currentIndex += 1
 
-                                        is Archive.Processed -> archive.contents.size
-                                    }
-                                }
+            val archive = overviewArchive.archive
 
-                                overviewArchive.archive.path to index
-                            }
-                        }
+            if (overviewArchive is OverviewArchive.Expanded) {
+                currentIndex += when (archive) {
+                    is Archive.Processing, is Archive.Failure -> 1
+                    is Archive.Processed ->
+                        filterContentsByDate(
+                            archive.contents,
+                            state.dateRangeStart,
+                            state.dateRangeEnd
+                        ).size
+                }
+            }
 
-                        val expandedOverviewArchiveExists by remember {
-                            derivedStateOf {
-                                state.overviewArchives.any { overviewArchive ->
-                                    overviewArchive is OverviewArchive.Expanded
-                                }
-                            }
-                        }
+            overviewArchive.archive.path to index
+        }
+    }
 
-                        var isStickyHeaderHovered by remember { mutableStateOf(false) }
+    val expandedOverviewArchiveExists by remember {
+        derivedStateOf {
+            state.overviewArchives.any { overviewArchive ->
+                overviewArchive is OverviewArchive.Expanded
+            }
+        }
+    }
 
-                        LazyVerticalGrid(
-                            columns = GridCells.Adaptive(minSize = CELL_SIZE.dp),
-                            modifier = Modifier.fillMaxSize(),
-                            state = gridState
-                        ) {
-                            state.overviewArchives.forEach { overviewArchive ->
-                                val archive = overviewArchive.archive
+    var isStickyHeaderHovered by remember { mutableStateOf(false) }
 
-                                stickyHeader(
+    val isListView = state.viewMode == ViewMode.LIST
+
+    val filteredContentsByArchive = remember(
+        state.overviewArchives,
+        state.dateRangeStart,
+        state.dateRangeEnd
+    ) {
+        state.overviewArchives.associate { overviewArchive ->
+            val archive = overviewArchive.archive
+            overviewArchive.archive.path to when (archive) {
+                is Archive.Processed -> filterContentsByDate(
+                    archive.contents,
+                    state.dateRangeStart,
+                    state.dateRangeEnd
+                )
+                else -> emptyList()
+            }
+        }
+    }
+
+    LazyVerticalGrid(
+        columns = if (isListView) GridCells.Fixed(1) else GridCells.Adaptive(minSize = CELL_SIZE.dp),
+        modifier = Modifier.fillMaxSize(),
+        state = gridState
+    ) {
+        EmitOverviewArchives(
+            overviewArchives = state.overviewArchives,
+            state = state,
+            scope = scope,
+            feature = feature,
+            gridState = gridState,
+            headerIndices = headerIndices,
+            expandedOverviewArchiveExists = expandedOverviewArchiveExists,
+            isStickyHeaderHovered = isStickyHeaderHovered,
+            isListView = isListView,
+            isFloatingHovered = isFloatingHovered,
+            onStickyHeaderHoveredChange = { isStickyHeaderHovered = it },
+            filteredContentsByArchive = filteredContentsByArchive,
+            onPreviewImageRequest = onPreviewImageRequest,
+        )
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+private fun LazyGridScope.EmitOverviewArchives(
+    overviewArchives: List<OverviewArchive>,
+    state: OverviewState,
+    scope: CoroutineScope,
+    feature: OverviewFeature,
+    gridState: LazyGridState,
+    headerIndices: Map<String, Int>,
+    expandedOverviewArchiveExists: Boolean,
+    isStickyHeaderHovered: Boolean,
+    isListView: Boolean,
+    isFloatingHovered: Boolean,
+    onStickyHeaderHoveredChange: (Boolean) -> Unit,
+    filteredContentsByArchive: Map<String, List<Content>>,
+    onPreviewImageRequest: (Content) -> Unit,
+) {
+    for (overviewArchive in overviewArchives) {
+        val archive = overviewArchive.archive
+
+        stickyHeader(
                                     key = "header_${archive.path}_${
                                         when (overviewArchive) {
                                             is OverviewArchive.Expanded -> "expanded"
@@ -349,10 +664,10 @@ fun OverviewView(feature: OverviewFeature = koinInject()) {
                                                 )
                                             }
                                         }).onPointerEvent(eventType = PointerEventType.Enter, onEvent = {
-                                            isStickyHeaderHovered = true
+                                            onStickyHeaderHoveredChange(true)
                                         }).onPointerEvent(
                                             eventType = PointerEventType.Exit, onEvent = {
-                                                isStickyHeaderHovered = false
+                                                onStickyHeaderHoveredChange(false)
                                             }), color = MaterialTheme.colorScheme.surfaceVariant, tonalElevation = 4.dp
                                     ) {
                                         Row(
@@ -517,84 +832,39 @@ fun OverviewView(feature: OverviewFeature = koinInject()) {
                                     }
                                 }
 
-                                if (overviewArchive is OverviewArchive.Expanded) {
-                                    when (archive) {
-                                        is Archive.Processing -> item(
-                                            key = "processing_${archive.path}", span = { GridItemSpan(maxLineSpan) }) {
-                                            Box(
-                                                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                CircularProgressIndicator()
-                                            }
-                                        }
-
-                                        is Archive.Failure -> item(
-                                            key = "failure_${archive.path}", span = { GridItemSpan(maxLineSpan) }) {
-                                            Text(
-                                                "Failed to upload: ${archive.throwable.message}",
-                                                color = MaterialTheme.colorScheme.error,
-                                                modifier = Modifier.padding(16.dp)
-                                            )
-                                        }
-
-                                        is Archive.Processed -> items(
-                                            items = archive.contents,
-                                            key = { content -> "${archive.path}_${content.id}" },
-                                            contentType = { it::class }) { content ->
-                                            val isContentSelected by remember(state, content.id) {
-                                                derivedStateOf {
-                                                    (state as? OverviewState.Selection)?.contentIds?.contains(content.id)
-                                                        ?: false
-                                                }
-                                            }
-
-                                            ContentCard(
-                                                content = content,
-                                                size = Size(CELL_SIZE, CELL_SIZE),
-                                                isHoverable = !isStickyHeaderHovered && !isFloatingHovered,
-                                                isSelectionModeActive = state is OverviewState.Selection,
-                                                isSelected = isContentSelected,
-                                                click = {
-                                                    when (state) {
-                                                        is OverviewState.Default -> scope.launch {
-                                                            feature.execute(OverviewCommand.SaveContent(content = content))
-                                                        }
-
-                                                        is OverviewState.Selection -> scope.launch {
-                                                            val command = when {
-                                                                isContentSelected -> OverviewCommand.RemoveFromSelection(
-                                                                    contents = listOf(content)
-                                                                )
-
-                                                                else -> OverviewCommand.AddToSelection(
-                                                                    contents = listOf(
-                                                                        content
-                                                                    )
-                                                                )
-                                                            }
-
-                                                            feature.execute(command)
-                                                        }
-                                                    }
-                                                },
-                                                longClick = {
-                                                    if (state is OverviewState.Default) {
-                                                        scope.launch {
-                                                            feature.execute(
-                                                                OverviewCommand.AddToSelection(contents = listOf(content))
-                                                            )
-                                                        }
-                                                    }
-                                                })
-                                        }
-                                    }
-                                }
-                            }
-                        }
+        if (overviewArchive is OverviewArchive.Expanded) {
+            when (archive) {
+                is Archive.Processing -> item(
+                    key = "processing_${archive.path}", span = { GridItemSpan(maxLineSpan) }) {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
                     }
                 }
+
+                is Archive.Failure -> item(
+                    key = "failure_${archive.path}", span = { GridItemSpan(maxLineSpan) }) {
+                    Text(
+                        "Failed to upload: ${archive.throwable.message}",
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+
+                is Archive.Processed -> ProcessedArchiveItems(
+                    archive = archive,
+                    state = state,
+                    scope = scope,
+                    feature = feature,
+                    isListView = isListView,
+                    isStickyHeaderHovered = isStickyHeaderHovered,
+                    isFloatingHovered = isFloatingHovered,
+                    filteredContents = filteredContentsByArchive[archive.path] ?: emptyList(),
+                    onPreviewImageRequest = onPreviewImageRequest,
+                )
             }
         }
-    })
+    }
 }

@@ -81,4 +81,8 @@ sealed interface OverviewCommand {
     data object SaveSuccess : OverviewCommand
 
     data class UpdateHovering(val isHovered: Boolean) : OverviewCommand
+
+    data class SetDateRange(val start: Long?, val end: Long?) : OverviewCommand
+
+    data class SetViewMode(val viewMode: ViewMode) : OverviewCommand
 }

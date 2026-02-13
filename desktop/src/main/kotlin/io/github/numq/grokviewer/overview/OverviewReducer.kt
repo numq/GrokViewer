@@ -155,6 +155,9 @@ class OverviewReducer(
                         lastDirectoryPath = lastDirectoryPath,
                         saveCandidate = saveCandidate,
                         isHovered = isHovered,
+                        dateRangeStart = dateRangeStart,
+                        dateRangeEnd = dateRangeEnd,
+                        viewMode = viewMode,
                         contents = command.contents.toSet(),
                         contentIds = command.contents.map(Content::id),
                     )
@@ -181,6 +184,9 @@ class OverviewReducer(
                             lastDirectoryPath = lastDirectoryPath,
                             saveCandidate = saveCandidate,
                             isHovered = isHovered,
+                            dateRangeStart = dateRangeStart,
+                            dateRangeEnd = dateRangeEnd,
+                            viewMode = viewMode,
                         )
                     )
 
@@ -199,6 +205,9 @@ class OverviewReducer(
                         lastDirectoryPath = lastDirectoryPath,
                         saveCandidate = saveCandidate,
                         isHovered = isHovered,
+                        dateRangeStart = dateRangeStart,
+                        dateRangeEnd = dateRangeEnd,
+                        viewMode = viewMode,
                     )
                 )
             }
@@ -288,6 +297,16 @@ class OverviewReducer(
             is OverviewState.Default -> transition(state.copy(isHovered = command.isHovered))
 
             is OverviewState.Selection -> transition(state.copy(isHovered = command.isHovered))
+        }
+
+        is OverviewCommand.SetDateRange -> when (state) {
+            is OverviewState.Default -> transition(state.copy(dateRangeStart = command.start, dateRangeEnd = command.end))
+            is OverviewState.Selection -> transition(state.copy(dateRangeStart = command.start, dateRangeEnd = command.end))
+        }
+
+        is OverviewCommand.SetViewMode -> when (state) {
+            is OverviewState.Default -> transition(state.copy(viewMode = command.viewMode))
+            is OverviewState.Selection -> transition(state.copy(viewMode = command.viewMode))
         }
     }
 }

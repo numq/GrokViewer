@@ -15,12 +15,23 @@ sealed interface OverviewState {
 
     val isHovered: Boolean
 
+    /** Start of date filter range (epoch millis), null = no start bound. */
+    val dateRangeStart: Long?
+
+    /** End of date filter range (epoch millis), null = no end bound. */
+    val dateRangeEnd: Long?
+
+    val viewMode: ViewMode
+
     data class Default(
         override val contentFilters: Set<ArchiveContentFilter> = emptySet(),
         override val overviewArchives: List<OverviewArchive> = emptyList(),
         override val lastDirectoryPath: String? = null,
         override val saveCandidate: SaveCandidate? = null,
         override val isHovered: Boolean = false,
+        override val dateRangeStart: Long? = null,
+        override val dateRangeEnd: Long? = null,
+        override val viewMode: ViewMode = ViewMode.GRID,
     ) : OverviewState
 
     data class Selection(
@@ -29,6 +40,9 @@ sealed interface OverviewState {
         override val lastDirectoryPath: String? = null,
         override val saveCandidate: SaveCandidate? = null,
         override val isHovered: Boolean = false,
+        override val dateRangeStart: Long? = null,
+        override val dateRangeEnd: Long? = null,
+        override val viewMode: ViewMode = ViewMode.GRID,
         val contents: Set<Content>,
         val contentIds: List<String>
     ) : OverviewState
